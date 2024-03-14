@@ -13,6 +13,7 @@ builder.Services.AddCors(options =>
         builder
             .AllowAnyHeader()
             .AllowAnyMethod()
+            .WithOrigins("http://localhost:44489")
             .SetIsOriginAllowed((host) => true)
             .AllowCredentials();
     });
@@ -30,8 +31,11 @@ if (!app.Environment.IsDevelopment())
 app.UseCors("AllowAll");
 app.UseHttpsRedirection();
 app.UseStaticFiles();
-app.UseRouting();
 app.MapHub<ChatHub>("/chathub");
+app.MapHub<StockHub>("/stockhub");
+app.UseRouting();
+
+
 
 
 app.MapControllerRoute(

@@ -10,45 +10,75 @@ class Chat extends Component {
             user: '',
             message: '',
             chatMessages: [],
+            stockData: {},
         };
     }
 
     componentDidMount() {
-        const newConnection = new signalR.HubConnectionBuilder()
+        const chatConnection = new signalR.HubConnectionBuilder()
             .withUrl('/chathub')
             .withAutomaticReconnect()
             .build();
 
-        this.setState({ connection: newConnection });
+        const stockConnection = new signalR.HubConnectionBuilder()
+            .withUrl('/stockhub')
+            .withAutomaticReconnect()
+            .build();
 
-        newConnection
+        this.setState({ connection: { chat: chatConnection, stock: stockConnection } });
+        stockConnection
             .start()
-            .then(response => console.log('Connection started!'))
+            .then(() => {
+                console.log('Stock connection started!');
+                this.startStreaming();
+            })
+            .catch(error => console.error("stock error tech" + error));
+
+        chatConnection
+            .start()
+            .then(() => console.log('Chat connection started!'))
             .catch(error => console.error(error));
 
-        newConnection.on('ReceiveMessage', (user, receivedMessage) => {
+       stockConnection.on('ReceiveStockData', (symbol, data) => {
+            this.setState((prevState) => ({
+                stockData: {
+                    ...prevState.stockData,
+                    [symbol]: data
+                }
+            }));
+        });
+        chatConnection.on('ReceiveMessage', (user, receivedMessage) => {
             this.setState((prevState) => {
                 const updatedMessages = [...prevState.chatMessages, `${user}: ${receivedMessage}`];
                 return { chatMessages: updatedMessages };
             });
         });
+
+       
     }
 
     componentWillUnmount() {
-        this.state.connection.stop();
+        const { chat, stock } = this.state.connection;
+        chat.stop();
+        stock.stop();
     }
 
     sendMessage = async () => {
         const { connection, user, message } = this.state;
 
         if (message) {
-            await connection.invoke('SendMessage', user, message);
+            await connection.chat.invoke('SendMessage', user, message);
             this.setState({ message: '' });
         }
     };
 
+    startStreaming() {
+        const { stock } = this.state.connection;
+        stock.invoke('StreamStockData').catch(error => console.error(error));
+    }
+
     render() {
-        const { user, chatMessages, message } = this.state;
+        const { user, chatMessages, message, stockData } = this.state;
 
         return (
             <div>
@@ -76,6 +106,15 @@ class Chat extends Component {
                     />
                     <button onClick={this.sendMessage}>Send</button>
                 </div>
+
+                <h2>Stock Data</h2>
+
+                {Object.entries(stockData).map(([symbol, data]) => (
+                    <div key={symbol}>
+                        <h3>{symbol}</h3>
+                        <pre>{JSON.stringify(data, null, 2)}</pre>
+                    </div>
+                ))}
             </div>
         );
     }
