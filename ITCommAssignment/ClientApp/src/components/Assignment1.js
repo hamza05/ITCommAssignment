@@ -162,6 +162,10 @@ export class Assignment1 extends Component {
 
         return Object.keys(errors).length === 0;
     }
+    handleDataReload = (updatedData) => {
+        this.setState({ userInputs: updatedData });
+    };
+
     render() {
         const { errors, userInputs  } = this.state;
 
@@ -275,7 +279,7 @@ export class Assignment1 extends Component {
                     </div>
                 </form>
             </div>
-                <Assignment1Grid userInputs={userInputs} />
+                <Assignment1Grid onDataReload={this.handleDataReload} userInputs={userInputs} />
             </div>
         );
     }

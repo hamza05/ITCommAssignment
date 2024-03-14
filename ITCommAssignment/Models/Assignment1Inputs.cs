@@ -2,6 +2,7 @@
 {
     public class Assignment1Inputs
     {
+        public int Id { get; set; }
         public string ControlType { get; set; }
         public double GridColumns { get; set; }
         public string LabelEnglish { get; set; }
