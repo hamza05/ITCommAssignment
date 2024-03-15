@@ -26,7 +26,7 @@ namespace ITCommAssignment.Models
                     }
                 }
 
-                await Task.Delay(TimeSpan.FromSeconds(5));
+                await Task.Delay(TimeSpan.FromSeconds(5000));
             }
         }
 

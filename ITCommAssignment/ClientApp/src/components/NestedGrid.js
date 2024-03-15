@@ -13,20 +13,54 @@ const DefaultColumnFilter = ({ column: { filterValue, setFilter } }) => {
 
 const NestedGrid = () => {
     const [data, setData] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [filter, setFilter] = useState('');
+    const [currentPage, setcurrentPage] = useState(1);
+
+    const [totalPages, setTotalPages] = useState(0); // Add state for total pages
+
+    const fetchData = async (pageIndex, pageSize, filter) => {
+        setLoading(true);
+        try {
+            const filterParam = filter ? `&filter=${filter}` : '';
+            const response = await fetch(`/nestedgrid?pageIndex=${pageIndex}&pageSize=${pageSize}${filterParam}`);
+            if (!response.ok) {
+                throw new Error('Failed to fetch data');
+            }
+            const result = await response.json();
+            setData(result.data);
+            setTotalPages(result.totalPages); // Set total pages from response
+        } catch (error) {
+            console.error('Error fetching data:', error);
+            setData([]);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handlePageSizeChange = (pageSize) => {
+        fetchData(0, pageSize, '');
+    };
+
+    const handleFilterChange = (e) => {
+        const filter = e.target.value;
+        setFilter(filter);
+        fetchData(0, pageSize, filter);
+    };
+
+    const handlePageChange = (pageIndex) => {
+        if (pageIndex == 0) {
+            setcurrentPage(pageIndex + 1);
+        } else {
+            setcurrentPage(pageIndex);
+        }
+        
+        fetchData(pageIndex -1, pageSize, filter);
+    };
 
     useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const response = await fetch('/nestedgrid');
-                const data = await response.json();
-                setData(data);
-            } catch (error) {
-                console.error('Error fetching data:', error);
-            }
-        };
-
-        fetchData();
-    }, []); // Dependency array should be empty to run only once on mount
+        fetchData(0, 10, '');
+    }, []);
 
     const columns = useMemo(
         () => [
@@ -55,7 +89,7 @@ const NestedGrid = () => {
         getTableBodyProps,
         headerGroups,
         prepareRow,
-        page, // Use 'page' instead of 'state' for pagination
+        page,
         state: { pageIndex, pageSize },
         gotoPage,
         nextPage,
@@ -68,43 +102,40 @@ const NestedGrid = () => {
         {
             columns,
             data,
-            initialState: { pageIndex: 0, pageSize: 10 },
+            manualPagination: true,
         },
         useFilters,
         useSortBy,
         usePagination
     );
 
+    useEffect(() => {
+        fetchData(pageIndex, pageSize, filter);
+    }, [pageIndex, pageSize, filter]);
+
     return (
         <div>
             <h2>Assignment 3</h2>
 
             <div>
-                {headerGroups.map((headerGroup) => (
-                    <div key={headerGroup.id} style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
-                        {headerGroup.headers.map((column) => (
-                            <div key={column.id} style={{ margin: '0 10px' }}>
-                                {column.canFilter ? column.render('Filter') : null}
-                            </div>
-                        ))}
-                    </div>
-                ))}
+                {/*{headerGroups.map((headerGroup) => (*/}
+                {/*    <div key={headerGroup.id} style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>*/}
+                {/*        {headerGroup.headers.map((column) => (*/}
+                {/*            <div key={column.id} style={{ margin: '0 10px' }}>*/}
+                {/*                {column.canFilter ? column.render('Filter') : null}*/}
+                {/*            </div>*/}
+                {/*        ))}*/}
+                {/*    </div>*/}
+                {/*))}*/}
                 <label>
-                    Show{' '}
-                    <select
-                        value={pageSize}
-                        onChange={(e) => {
-                            setPageSize(Number(e.target.value));
-                        }}
-                    >
-                        {[10, 20, 30, 40, 50].map((pageSize) => (
-                            <option key={pageSize} value={pageSize}>
-                                {pageSize}
-                            </option>
-                        ))}
-                    </select>{' '}
-                    entries
+                    
+                    <br/>Search Using Dynamic Filter
                 </label>
+                <input
+                    value={filter}
+                    onChange={handleFilterChange}
+                    placeholder="Search..."
+                />
             </div>
             <table {...getTableProps()} style={{ width: '100%' }}>
                 <thead>
@@ -133,22 +164,33 @@ const NestedGrid = () => {
                 </tbody>
             </table>
             <div>
+                Show{' '}
+                <select
+                    value={pageSize}
+                    onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+                >
+                    {[10, 20, 30, 40, 50].map((pageSize) => (
+                        <option key={pageSize} value={pageSize}>
+                            {pageSize}
+                        </option>
+                    ))}
+                </select>{' '}
                 <span>
                     Page{' '}
                     <strong>
-                        {pageIndex + 1} of {pageCount}
+                        {currentPage} of {totalPages} 
                     </strong>{' '}
                 </span>
-                <button onClick={() => gotoPage(0)} disabled={!canPreviousPage}>
+                <button onClick={() => handlePageChange(0)} disabled={currentPage == 1}>
                     {'<<'}
                 </button>
-                <button onClick={() => previousPage()} disabled={!canPreviousPage}>
+                <button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage == 1}>
                     {'<'}
                 </button>
-                <button onClick={() => nextPage()} disabled={!canNextPage}>
+                <button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage + 1 > totalPages}>
                     {'>'}
                 </button>
-                <button onClick={() => gotoPage(pageCount - 1)} disabled={!canNextPage}>
+                <button onClick={() => handlePageChange(totalPages)} disabled={totalPages == currentPage }>
                     {'>>'}
                 </button>
             </div>
