@@ -3,8 +3,10 @@ import Dropzone from 'react-dropzone';
 
 const ExcelImport = () => {
     const [tableData, setTableData] = useState([]);
+    const [loading, setLoading] = useState(false); // State variable for loading status
 
     const onDrop = async (acceptedFiles) => {
+        setLoading(true); // Set loading to true when starting file upload
         const file = acceptedFiles[0];
         const formData = new FormData();
         formData.append('file', file);
@@ -17,6 +19,7 @@ const ExcelImport = () => {
 
             if (!response.ok) {
                 console.error('Failed to upload Excel file');
+                setLoading(false); // Set loading to false if upload fails
                 return;
             }
 
@@ -24,6 +27,8 @@ const ExcelImport = () => {
             setTableData(jsonData);
         } catch (error) {
             console.error('Error during file upload:', error);
+        } finally {
+            setLoading(false); // Set loading to false after upload completes (whether successful or not)
         }
     };
 
@@ -40,6 +45,8 @@ const ExcelImport = () => {
                     </div>
                 )}
             </Dropzone>
+
+            {loading && <p>Loading...</p>} {/* Display loading indicator while loading is true */}
 
             <div>
                 {/* Render the table using the imported data */}

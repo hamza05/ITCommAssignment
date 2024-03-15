@@ -126,7 +126,7 @@ export class Assignment1Grid extends Component {
                                 <tr>
                                     <td>Control Type:</td>
                                     <td>
-                                        <input type="text" name="controlType" value={editedData.controlType} onChange={this.handleEditChange} />
+                                        <input type="text" name="controlType" value={editedData.controlType} disabled="true" onChange={this.handleEditChange} />
                                     </td>
                                 </tr>
                                 <tr>

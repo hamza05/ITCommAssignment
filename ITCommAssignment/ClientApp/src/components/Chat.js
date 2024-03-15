@@ -11,6 +11,8 @@ class Chat extends Component {
             message: '',
             chatMessages: [],
             stockData: {},
+            selectedTimezone: 'US/Eastern',
+            loading: true, // Add loading state
         };
     }
 
@@ -74,11 +76,35 @@ class Chat extends Component {
 
     startStreaming() {
         const { stock } = this.state.connection;
-        stock.invoke('StreamStockData').catch(error => console.error(error));
+        stock.invoke('StreamStockData')
+            .catch(error => console.error(error));
+        this.setState({ loading: false });
     }
 
     render() {
-        const { user, chatMessages, message, stockData } = this.state;
+        const { user, chatMessages, message, stockData, selectedTimezone, loading } = this.state;
+
+        const stockForTimezone = Object.entries(stockData).map(([symbol, data]) => {
+            console.log("data ddd    ");
+            console.log(data);
+            const jsondata = JSON.parse(data);
+            const timeSeries = jsondata["Time Series (1min)"];
+            console.log(timeSeries);
+            // Check if timeSeries is defined and has at least one entry
+            if (timeSeries && Object.keys(timeSeries).length > 0) {
+                // Get the first entry in the timeSeries
+                const timezoneData = timeSeries[Object.keys(timeSeries)[0]];
+
+                // Check if timezoneData is defined
+                if (timezoneData) {
+                    const { '1. open': open, '4. close': close } = timezoneData;
+                    return { symbol, open, close };
+                }
+            }
+
+            return null; // Return null if data is missing or doesn't match expected structure
+        }).filter(item => item !== null);
+
 
         return (
             <div>
@@ -107,14 +133,30 @@ class Chat extends Component {
                     <button onClick={this.sendMessage}>Send</button>
                 </div>
 
-                <h2>Stock Data</h2>
+                <h2>Stock Data for {selectedTimezone}</h2>
 
-                {Object.entries(stockData).map(([symbol, data]) => (
-                    <div key={symbol}>
-                        <h3>{symbol}</h3>
-                        <pre>{JSON.stringify(data, null, 2)}</pre>
-                    </div>
-                ))}
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Symbol</th>
+                            <th>Opening Price</th>
+                            <th>Closing Price</th>
+                        </tr>
+                    </thead>
+                    {loading ? (
+                        <p>Loading...</p>
+                    ) : (<></>)}
+                        <tbody>
+                            {stockForTimezone.map(({ symbol, open, close }) => (
+                                <tr key={symbol}>
+                                    <td>{symbol}</td>
+                                    <td>{open}</td>
+                                    <td>{close}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    
+                </table>
             </div>
         );
     }
